@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 15
+
+    steps:
+      - name: Resolve tag
+        id: release
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ -n "$INPUT_TAG" ]]; then
+            echo "tag=$INPUT_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build app bundle
+        run: ./Scripts/build-app.sh
+
+      - name: Verify app signature
+        run: codesign --verify --deep --strict .build/CCUsageMenu.app
+
+      - name: Create release files
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          archive="CCUsageMenu-${RELEASE_TAG}.zip"
+          ditto -c -k --sequesterRsrc --keepParent .build/CCUsageMenu.app "$archive"
+          shasum -a 256 "$archive" > "$archive.sha256"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          archive="CCUsageMenu-${RELEASE_TAG}.zip"
+          gh release create "$RELEASE_TAG" \
+            "$archive" \
+            "$archive.sha256" \
+            --verify-tag \
+            --generate-notes \
+            --title "CCUsageMenu ${RELEASE_TAG}"

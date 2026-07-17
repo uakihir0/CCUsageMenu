@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: macos-15
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build app bundle
+        run: ./Scripts/build-app.sh
+
+      - name: Verify app signature
+        run: codesign --verify --deep --strict .build/CCUsageMenu.app
+
+      - name: Package app
+        run: ditto -c -k --sequesterRsrc --keepParent .build/CCUsageMenu.app CCUsageMenu.zip
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CCUsageMenu-${{ github.sha }}
+          path: CCUsageMenu.zip
+          if-no-files-found: error
+          retention-days: 14
