@@ -76,6 +76,14 @@ struct UsageSnapshot: Sendable {
         calendar inputCalendar: Calendar = .current
     ) -> UsageSnapshot {
         let calendar = inputCalendar
+        let formatter: DateFormatter = {
+            let f = DateFormatter()
+            f.calendar = calendar
+            f.locale = Locale(identifier: "en_US_POSIX")
+            f.dateFormat = "yyyy-MM-dd"
+            f.timeZone = calendar.timeZone
+            return f
+        }()
         let startOfToday = calendar.startOfDay(for: now)
         let rowsByPeriod = Dictionary(
             report.daily.map { ($0.period, $0) },
@@ -86,13 +94,13 @@ struct UsageSnapshot: Sendable {
             guard let date = calendar.date(byAdding: .day, value: offset, to: startOfToday) else {
                 return nil
             }
-            let key = DateFormatters.period.string(from: date)
+            let key = formatter.string(from: date)
             return rowsByPeriod[key] ?? .empty(period: key)
         }
 
         return UsageSnapshot(
             days: days,
-            todayKey: DateFormatters.period.string(from: startOfToday)
+            todayKey: formatter.string(from: startOfToday)
         )
     }
 }
