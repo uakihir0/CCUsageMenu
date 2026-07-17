@@ -44,12 +44,13 @@ enum CCUsageMenuApp {
 }
 
 @MainActor
-private final class AppDelegate: NSObject, NSApplicationDelegate {
+private final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private let viewModel = UsageViewModel()
     private let settings = AppSettings()
     private let popover = NSPopover()
     private var statusItem: NSStatusItem?
     private var refreshTimer: Timer?
+    private var outsideClickMonitor: Any?
     private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -66,10 +67,23 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
     private func configurePopover() {
         popover.behavior = .transient
         popover.animates = true
+        popover.delegate = self
         popover.contentSize = NSSize(width: 320, height: 620)
         popover.contentViewController = NSHostingController(
             rootView: UsagePopoverView(viewModel: viewModel, settings: settings)
         )
+    }
+
+    func applicationDidResignActive(_ notification: Notification) {
+        closePopover()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        stopOutsideClickMonitoring()
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        stopOutsideClickMonitoring()
     }
 
     private func configureStatusItem() {
@@ -156,7 +170,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc
     private func togglePopover() {
         if popover.isShown {
-            popover.performClose(nil)
+            closePopover()
             return
         }
 
@@ -166,5 +180,33 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
             of: button,
             preferredEdge: .minY
         )
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        startOutsideClickMonitoring()
+    }
+
+    private func closePopover() {
+        guard popover.isShown else {
+            stopOutsideClickMonitoring()
+            return
+        }
+        popover.performClose(nil)
+    }
+
+    private func startOutsideClickMonitoring() {
+        guard outsideClickMonitor == nil else { return }
+
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.closePopover()
+            }
+        }
+    }
+
+    private func stopOutsideClickMonitoring() {
+        guard let outsideClickMonitor else { return }
+        NSEvent.removeMonitor(outsideClickMonitor)
+        self.outsideClickMonitor = nil
     }
 }
