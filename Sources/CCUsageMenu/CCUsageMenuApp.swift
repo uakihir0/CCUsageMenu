@@ -13,7 +13,10 @@ enum CCUsageMenuApp {
             application.finishLaunching()
 
             do {
-                try ScreenshotRenderer.render(to: outputPath)
+                try ScreenshotRenderer.render(
+                    to: outputPath,
+                    language: screenshotLanguage
+                )
             } catch {
                 let message = "Screenshot generation failed: \(error)\n"
                 FileHandle.standardError.write(Data(message.utf8))
@@ -40,6 +43,16 @@ enum CCUsageMenuApp {
             return nil
         }
         return arguments[flagIndex + 1]
+    }
+
+    private static var screenshotLanguage: AppLanguage {
+        let arguments = CommandLine.arguments
+        guard let flagIndex = arguments.firstIndex(of: "--screenshot-language"),
+              arguments.indices.contains(flagIndex + 1),
+              let language = AppLanguage(rawValue: arguments[flagIndex + 1]) else {
+            return .english
+        }
+        return language
     }
 }
 

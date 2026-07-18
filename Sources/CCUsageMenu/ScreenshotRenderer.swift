@@ -3,7 +3,10 @@ import SwiftUI
 
 @MainActor
 enum ScreenshotRenderer {
-    static func render(to outputPath: String) throws {
+    static func render(
+        to outputPath: String,
+        language: AppLanguage
+    ) throws {
         let now = Date()
         let suiteName = "local.ccusage.menu.screenshot"
         guard let defaults = UserDefaults(suiteName: suiteName) else {
@@ -11,7 +14,7 @@ enum ScreenshotRenderer {
         }
 
         defaults.removePersistentDomain(forName: suiteName)
-        defaults.set(AppLanguage.japanese.rawValue, forKey: "settings.language")
+        defaults.set(language.rawValue, forKey: "settings.language")
         defer {
             defaults.removePersistentDomain(forName: suiteName)
         }
