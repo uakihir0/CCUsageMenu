@@ -64,7 +64,7 @@ swift test
 サンプルデータを使って README のスクリーンショットを再生成できます。実際の利用データは読み込みません。
 
 ```sh
-./Scripts/generate-screenshot.sh
+./Scripts/generate-screenshot.sh japanese
 ```
 
 ## リリース

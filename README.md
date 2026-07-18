@@ -5,7 +5,7 @@
 A lightweight macOS menu bar app for checking your local [`ccusage`](https://github.com/ryoppippi/ccusage) usage at a glance. Your usage data is read locally from the `ccusage` command and is never sent to an external server.
 
 <p align="center">
-  <img src="docs/ccusage-menu.png" width="320" alt="CCUsageMenu showing daily cost, a seven-day chart, token breakdowns, and model usage">
+  <img src="docs/ccusage-menu-en.png" width="320" alt="CCUsageMenu showing daily cost, a seven-day chart, token breakdowns, and model usage">
 </p>
 
 ## Features
