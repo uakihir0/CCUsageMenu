@@ -16,6 +16,18 @@ struct SettingsView: View {
 
             Divider()
 
+            settingRow(language.text("集計タイムゾーン", "Aggregation time zone")) {
+                Picker(
+                    language.text("集計タイムゾーン", "Aggregation time zone"),
+                    selection: $settings.aggregationTimeZone
+                ) {
+                    Text("JST").tag(AggregationTimeZone.jst)
+                    Text("UTC").tag(AggregationTimeZone.utc)
+                }
+            }
+
+            Divider()
+
             settingRow(language.text("メニューバー表示", "Menu bar display")) {
                 Picker(
                     language.text("メニューバー表示", "Menu bar display"),

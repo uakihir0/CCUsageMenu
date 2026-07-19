@@ -16,9 +16,9 @@ struct CCUsageClient: UsageLoading {
             process.arguments = [
                 "daily",
                 "--json",
-                "--since", DateFormatters.period.string(from: start),
-                "--until", DateFormatters.period.string(from: end),
-                "--timezone", timeZone.identifier,
+                "--since", DateFormatters.periodString(from: start, timeZone: timeZone),
+                "--until", DateFormatters.periodString(from: end, timeZone: timeZone),
+                "--timezone", Self.commandIdentifier(for: timeZone),
                 "--offline",
                 "--no-color"
             ]
@@ -51,6 +51,10 @@ struct CCUsageClient: UsageLoading {
                 throw CCUsageError.invalidOutput(error.localizedDescription)
             }
         }.value
+    }
+
+    static func commandIdentifier(for timeZone: TimeZone) -> String {
+        timeZone.secondsFromGMT() == 0 ? "UTC" : timeZone.identifier
     }
 }
 

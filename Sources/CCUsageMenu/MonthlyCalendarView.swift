@@ -116,7 +116,10 @@ struct MonthlyCalendarView: View {
     }
 
     private var calendarGrid: some View {
-        let dates = MonthCalendar.dates(in: viewModel.selectedMonth)
+        let dates = MonthCalendar.dates(
+            in: viewModel.selectedMonth,
+            calendar: viewModel.calendar
+        )
 
         return LazyVGrid(columns: columns, spacing: 2) {
             ForEach(Array(dates.enumerated()), id: \.offset) { _, date in
@@ -131,7 +134,10 @@ struct MonthlyCalendarView: View {
     }
 
     private func dayCell(_ date: Date) -> some View {
-        let key = DateFormatters.period.string(from: date)
+        let key = DateFormatters.periodString(
+            from: date,
+            timeZone: viewModel.calendar.timeZone
+        )
         let usage = usage(for: key)
         let isSelected = selectedPeriod == key
 
@@ -139,7 +145,7 @@ struct MonthlyCalendarView: View {
             selectedPeriod = isSelected ? nil : key
         } label: {
             VStack(spacing: 2) {
-                Text("\(Calendar.current.component(.day, from: date))")
+                Text("\(viewModel.calendar.component(.day, from: date))")
                     .font(.caption.weight(isSelected ? .semibold : .regular))
                 Text(usage.map(metric.cellValue) ?? "")
                     .font(.system(size: 9, weight: .regular, design: .monospaced))
@@ -162,7 +168,10 @@ struct MonthlyCalendarView: View {
 
     private var summaryTitle: String {
         guard let selectedPeriod,
-              let date = DateFormatters.period.date(from: selectedPeriod) else {
+              let date = DateFormatters.date(
+                fromPeriod: selectedPeriod,
+                timeZone: viewModel.calendar.timeZone
+              ) else {
             return language.text("月合計", "Month total")
         }
         return selectedDayLabel(date)
@@ -188,14 +197,16 @@ struct MonthlyCalendarView: View {
         let formatter = DateFormatter()
         formatter.locale = language.locale
         formatter.dateFormat = language == .japanese ? "yyyy年M月" : "MMMM yyyy"
+        formatter.timeZone = viewModel.calendar.timeZone
         return formatter.string(from: viewModel.selectedMonth)
     }
 
     private var weekdaySymbols: [String] {
         let formatter = DateFormatter()
         formatter.locale = language.locale
+        formatter.timeZone = viewModel.calendar.timeZone
         let symbols = formatter.veryShortWeekdaySymbols ?? []
-        let first = max(0, Calendar.current.firstWeekday - 1)
+        let first = max(0, viewModel.calendar.firstWeekday - 1)
         return Array(symbols[first...] + symbols[..<first])
     }
 
@@ -204,9 +215,11 @@ struct MonthlyCalendarView: View {
     }
 
     private func selectedDayLabel(_ date: Date) -> String {
-        language == .japanese
-            ? DateFormatters.selectedDay.string(from: date)
-            : DateFormatters.selectedDayEnglish.string(from: date)
+        DateFormatters.selectedDayString(
+            from: date,
+            language: language,
+            timeZone: viewModel.calendar.timeZone
+        )
     }
 
     private func errorView(_ message: String) -> some View {

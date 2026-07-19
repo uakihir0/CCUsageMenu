@@ -19,10 +19,15 @@ enum ScreenshotRenderer {
             defaults.removePersistentDomain(forName: suiteName)
         }
 
+        let aggregationTimeZone = AggregationTimeZone.jst
         let viewModel = UsageViewModel(
             client: SampleUsageClient(),
-            snapshot: SampleUsageData.snapshot(now: now),
-            lastUpdated: now
+            snapshot: SampleUsageData.snapshot(
+                now: now,
+                calendar: aggregationTimeZone.calendar
+            ),
+            lastUpdated: now,
+            aggregationTimeZone: aggregationTimeZone
         )
         let settings = AppSettings(defaults: defaults)
         let content = UsagePopoverView(

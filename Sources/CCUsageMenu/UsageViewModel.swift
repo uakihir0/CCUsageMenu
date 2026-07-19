@@ -8,15 +8,19 @@ final class UsageViewModel: ObservableObject {
     @Published private(set) var lastUpdated: Date?
 
     private let client: any UsageLoading
+    private(set) var aggregationTimeZone: AggregationTimeZone
+    private var loadGeneration = 0
 
     init(
         client: any UsageLoading = CCUsageClient(),
         snapshot: UsageSnapshot? = nil,
-        lastUpdated: Date? = nil
+        lastUpdated: Date? = nil,
+        aggregationTimeZone: AggregationTimeZone = .jst
     ) {
         self.client = client
         self.snapshot = snapshot
         self.lastUpdated = lastUpdated
+        self.aggregationTimeZone = aggregationTimeZone
     }
 
     var menuBarTitle: String {
@@ -25,16 +29,37 @@ final class UsageViewModel: ObservableObject {
     }
 
     func load(force: Bool = false) async {
-        if isLoading { return }
+        await load(force: force, supersedingCurrentLoad: false)
+    }
+
+    func setAggregationTimeZone(_ timeZone: AggregationTimeZone) async {
+        guard aggregationTimeZone != timeZone else { return }
+        aggregationTimeZone = timeZone
+        snapshot = nil
+        lastUpdated = nil
+        await load(force: true, supersedingCurrentLoad: true)
+    }
+
+    private func load(
+        force: Bool,
+        supersedingCurrentLoad: Bool
+    ) async {
+        if isLoading, !supersedingCurrentLoad { return }
         if !force, let lastUpdated, Date().timeIntervalSince(lastUpdated) < 60 {
             return
         }
 
+        loadGeneration += 1
+        let generation = loadGeneration
         isLoading = true
         loadError = nil
-        defer { isLoading = false }
+        defer {
+            if generation == loadGeneration {
+                isLoading = false
+            }
+        }
 
-        let calendar = Calendar.current
+        let calendar = aggregationTimeZone.calendar
         let now = Date()
         let end = calendar.startOfDay(for: now)
         guard let start = calendar.date(byAdding: .day, value: -6, to: end) else {
@@ -47,9 +72,11 @@ final class UsageViewModel: ObservableObject {
                 through: end,
                 timeZone: calendar.timeZone
             )
+            guard generation == loadGeneration else { return }
             snapshot = UsageSnapshot.make(report: report, now: now, calendar: calendar)
             lastUpdated = Date()
         } catch {
+            guard generation == loadGeneration else { return }
             loadError = error
         }
     }

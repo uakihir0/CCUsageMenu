@@ -45,6 +45,23 @@ enum RefreshFrequency: String, CaseIterable, Identifiable {
     }
 }
 
+enum AggregationTimeZone: String, CaseIterable, Identifiable {
+    case jst = "Asia/Tokyo"
+    case utc = "UTC"
+
+    var id: String { rawValue }
+
+    var timeZone: TimeZone {
+        TimeZone(identifier: rawValue) ?? .gmt
+    }
+
+    var calendar: Calendar {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        return calendar
+    }
+}
+
 @MainActor
 final class AppSettings: ObservableObject {
     @Published var language: AppLanguage {
@@ -57,6 +74,15 @@ final class AppSettings: ObservableObject {
 
     @Published var refreshFrequency: RefreshFrequency {
         didSet { defaults.set(refreshFrequency.rawValue, forKey: Keys.refreshFrequency) }
+    }
+
+    @Published var aggregationTimeZone: AggregationTimeZone {
+        didSet {
+            defaults.set(
+                aggregationTimeZone.rawValue,
+                forKey: Keys.aggregationTimeZone
+            )
+        }
     }
 
     private let defaults: UserDefaults
@@ -72,11 +98,15 @@ final class AppSettings: ObservableObject {
         refreshFrequency = RefreshFrequency(
             rawValue: defaults.string(forKey: Keys.refreshFrequency) ?? ""
         ) ?? .fiveMinutes
+        aggregationTimeZone = AggregationTimeZone(
+            rawValue: defaults.string(forKey: Keys.aggregationTimeZone) ?? ""
+        ) ?? .jst
     }
 
     private enum Keys {
         static let language = "settings.language"
         static let menuBarDisplay = "settings.menuBarDisplay"
         static let refreshFrequency = "settings.refreshFrequency"
+        static let aggregationTimeZone = "settings.aggregationTimeZone"
     }
 }

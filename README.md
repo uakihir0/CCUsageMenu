@@ -15,7 +15,7 @@ A lightweight macOS menu bar app for checking your local [`ccusage`](https://git
 - Daily service, token breakdown, and model details
 - Monthly calendar for reviewing historical usage
 - Optional cost, token count, or icon-only menu bar display
-- Configurable language and refresh interval
+- Configurable language, aggregation time zone (JST or UTC), and refresh interval
 - Claude and Codex service indicators
 - Japanese and English interfaces
 

@@ -61,7 +61,10 @@ enum SampleUsageData {
             let totalTokens = value.input + value.output + value.cacheCreation + value.cacheRead
 
             return DailyUsage(
-                period: DateFormatters.period.string(from: date),
+                period: DateFormatters.periodString(
+                    from: date,
+                    timeZone: calendar.timeZone
+                ),
                 inputTokens: value.input,
                 outputTokens: value.output,
                 cacheCreationTokens: value.cacheCreation,

@@ -58,13 +58,22 @@ enum CCUsageMenuApp {
 
 @MainActor
 private final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
-    private let viewModel = UsageViewModel()
-    private let settings = AppSettings()
+    private let viewModel: UsageViewModel
+    private let settings: AppSettings
     private let popover = NSPopover()
     private var statusItem: NSStatusItem?
     private var refreshTimer: Timer?
     private var outsideClickMonitor: Any?
     private var cancellables = Set<AnyCancellable>()
+
+    override init() {
+        let settings = AppSettings()
+        self.settings = settings
+        viewModel = UsageViewModel(
+            aggregationTimeZone: settings.aggregationTimeZone
+        )
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         configurePopover()

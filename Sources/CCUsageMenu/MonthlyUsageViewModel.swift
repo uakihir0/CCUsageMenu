@@ -8,15 +8,19 @@ final class MonthlyUsageViewModel: ObservableObject {
     @Published private(set) var loadError: Error?
 
     private let client: any UsageLoading
-    private var calendar: Calendar
+    private(set) var calendar: Calendar
+    private(set) var aggregationTimeZone: AggregationTimeZone
     private var cache: [String: [DailyUsage]] = [:]
+    private var loadGeneration = 0
 
     init(
         client: any UsageLoading = CCUsageClient(),
-        calendar: Calendar = .current,
+        aggregationTimeZone: AggregationTimeZone = .jst,
         now: Date = Date()
     ) {
         self.client = client
+        self.aggregationTimeZone = aggregationTimeZone
+        let calendar = aggregationTimeZone.calendar
         self.calendar = calendar
         selectedMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
     }
@@ -37,9 +41,35 @@ final class MonthlyUsageViewModel: ObservableObject {
     }
 
     func load(force: Bool = false) async {
-        if isLoading { return }
+        await load(force: force, supersedingCurrentLoad: false)
+    }
 
-        let key = DateFormatters.period.string(from: selectedMonth)
+    func setAggregationTimeZone(_ timeZone: AggregationTimeZone) async {
+        guard aggregationTimeZone != timeZone else { return }
+
+        let year = calendar.component(.year, from: selectedMonth)
+        let month = calendar.component(.month, from: selectedMonth)
+        aggregationTimeZone = timeZone
+        calendar = timeZone.calendar
+        selectedMonth = calendar.date(
+            from: DateComponents(year: year, month: month, day: 1)
+        ) ?? selectedMonth
+        cache.removeAll()
+        days = []
+        loadError = nil
+        await load(force: true, supersedingCurrentLoad: true)
+    }
+
+    private func load(
+        force: Bool,
+        supersedingCurrentLoad: Bool
+    ) async {
+        if isLoading, !supersedingCurrentLoad { return }
+
+        let key = DateFormatters.periodString(
+            from: selectedMonth,
+            timeZone: calendar.timeZone
+        )
         if !force, let cached = cache[key] {
             days = cached
             loadError = nil
@@ -58,9 +88,15 @@ final class MonthlyUsageViewModel: ObservableObject {
             return
         }
 
+        loadGeneration += 1
+        let generation = loadGeneration
         isLoading = true
         loadError = nil
-        defer { isLoading = false }
+        defer {
+            if generation == loadGeneration {
+                isLoading = false
+            }
+        }
 
         do {
             let report = try await client.load(
@@ -68,9 +104,11 @@ final class MonthlyUsageViewModel: ObservableObject {
                 through: end,
                 timeZone: calendar.timeZone
             )
+            guard generation == loadGeneration else { return }
             cache[key] = report.daily
             days = report.daily
         } catch {
+            guard generation == loadGeneration else { return }
             loadError = error
         }
     }

@@ -5,7 +5,7 @@ struct UsagePopoverView: View {
     @ObservedObject var viewModel: UsageViewModel
     @ObservedObject var settings: AppSettings
     let screenshotMode: Bool
-    @StateObject private var monthlyViewModel = MonthlyUsageViewModel()
+    @StateObject private var monthlyViewModel: MonthlyUsageViewModel
     @State private var chartMetric: ChartMetric = .cost
     @State private var selectedPeriod: String?
     @State private var chartSelection: String?
@@ -21,6 +21,11 @@ struct UsagePopoverView: View {
         self.viewModel = viewModel
         self.settings = settings
         self.screenshotMode = screenshotMode
+        _monthlyViewModel = StateObject(
+            wrappedValue: MonthlyUsageViewModel(
+                aggregationTimeZone: settings.aggregationTimeZone
+            )
+        )
     }
 
     var body: some View {
@@ -55,6 +60,16 @@ struct UsagePopoverView: View {
         .onChange(of: chartSelection) { _, period in
             if let period {
                 selectedPeriod = period
+            }
+        }
+        .onChange(of: settings.aggregationTimeZone) { _, timeZone in
+            selectedPeriod = nil
+            chartSelection = nil
+            Task {
+                await viewModel.setAggregationTimeZone(timeZone)
+            }
+            Task {
+                await monthlyViewModel.setAggregationTimeZone(timeZone)
             }
         }
     }
@@ -328,17 +343,27 @@ struct UsagePopoverView: View {
     }
 
     private func dayLabel(_ period: String) -> String {
-        guard let date = DateFormatters.period.date(from: period) else { return period }
-        return language == .japanese
-            ? DateFormatters.weekday.string(from: date)
-            : DateFormatters.weekdayEnglish.string(from: date)
+        let timeZone = settings.aggregationTimeZone.timeZone
+        guard let date = DateFormatters.date(fromPeriod: period, timeZone: timeZone) else {
+            return period
+        }
+        return DateFormatters.weekdayString(
+            from: date,
+            language: language,
+            timeZone: timeZone
+        )
     }
 
     private func selectedDayLabel(_ period: String) -> String {
-        guard let date = DateFormatters.period.date(from: period) else { return period }
-        return language == .japanese
-            ? DateFormatters.selectedDay.string(from: date)
-            : DateFormatters.selectedDayEnglish.string(from: date)
+        let timeZone = settings.aggregationTimeZone.timeZone
+        guard let date = DateFormatters.date(fromPeriod: period, timeZone: timeZone) else {
+            return period
+        }
+        return DateFormatters.selectedDayString(
+            from: date,
+            language: language,
+            timeZone: timeZone
+        )
     }
 
     private func selectedUsage(in snapshot: UsageSnapshot) -> DailyUsage {

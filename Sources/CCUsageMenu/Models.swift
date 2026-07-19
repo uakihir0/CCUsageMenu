@@ -106,6 +106,59 @@ struct UsageSnapshot: Sendable {
 }
 
 enum DateFormatters {
+    static func periodString(from date: Date, timeZone: TimeZone) -> String {
+        periodFormatter(timeZone: timeZone).string(from: date)
+    }
+
+    static func date(fromPeriod period: String, timeZone: TimeZone) -> Date? {
+        periodFormatter(timeZone: timeZone).date(from: period)
+    }
+
+    static func weekdayString(
+        from date: Date,
+        language: AppLanguage,
+        timeZone: TimeZone
+    ) -> String {
+        formatter(
+            locale: language.locale,
+            dateFormat: language == .japanese ? "E" : "EEE",
+            timeZone: timeZone
+        ).string(from: date)
+    }
+
+    static func selectedDayString(
+        from date: Date,
+        language: AppLanguage,
+        timeZone: TimeZone
+    ) -> String {
+        formatter(
+            locale: language.locale,
+            dateFormat: language == .japanese ? "M月d日（E）" : "MMM d (EEE)",
+            timeZone: timeZone
+        ).string(from: date)
+    }
+
+    private static func periodFormatter(timeZone: TimeZone) -> DateFormatter {
+        formatter(
+            locale: Locale(identifier: "en_US_POSIX"),
+            dateFormat: "yyyy-MM-dd",
+            timeZone: timeZone
+        )
+    }
+
+    private static func formatter(
+        locale: Locale,
+        dateFormat: String,
+        timeZone: TimeZone
+    ) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = locale
+        formatter.dateFormat = dateFormat
+        formatter.timeZone = timeZone
+        return formatter
+    }
+
     static let period: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
