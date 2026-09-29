@@ -3,7 +3,7 @@
 [English](README.md)
 
 `ccusage` の利用状況を、Mac のメニューバーからすぐ確認できる軽量アプリです。
-データはローカルの `ccusage` コマンドから取得し、外部サーバーへ送信しません。
+利用履歴はローカルで処理し、外部サーバーへ送信しません。料金を最新に保つため、`ccusage` が LiteLLM の料金表をオンラインで取得します。
 
 <p align="center">
   <img src="docs/ccusage-menu.png" width="320" alt="当日のコスト、7日間のグラフ、トークン内訳、モデル別利用状況を表示する CCUsageMenu">

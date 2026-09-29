@@ -19,7 +19,7 @@ struct CCUsageClient: UsageLoading {
                 "--since", DateFormatters.periodString(from: start, timeZone: timeZone),
                 "--until", DateFormatters.periodString(from: end, timeZone: timeZone),
                 "--timezone", Self.commandIdentifier(for: timeZone),
-                "--offline",
+                "--no-offline",
                 "--no-color"
             ]
             process.standardOutput = standardOutput
